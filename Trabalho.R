@@ -31,14 +31,11 @@ IPs = IP_generator(200) #IPtoCountry.pdf
 
 
 #Funcionalidade 1 - quantidade de IPs escaneados por país
-IpsPaises = IP_country(IPs) #IPtoCountry.pdf
+IpsPaises = IP_location(IPs) #IPtoCountry.pdf
 
-pais = as.character(IpsPaises)
+Funcionalidade1 <- sqldf("select country as pais, count(*) as quantidadeIPs from IpsPaises group by country") 
 
-QtdePaises <- data.frame(pais, stringsAsFactors=FALSE)
-
-Funcionalidade1 <- sqldf("select pais, count(*) as quantidade from QtdePaises group by pais") 
-
+Funcionalidade5 <- sqldf("select country as pais, region as regiao, count(*) as quantidadeIPs from IpsPaises group by country, region") 
 
 #Link: https://cran.r-project.org/web/packages/IPtoCountry/IPtoCountry.pdf
 
