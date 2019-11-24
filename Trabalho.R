@@ -1,92 +1,100 @@
 #-- Dependencias de bibliotecas
-
-#install.packages("pingr")
-library(pingr)
-
-#install.packages("iptools")
-library(iptools)
-
-#install.packages("IPtoCountry")
-library(IPtoCountry)
-
-#install.packages("sqldf")
-library("sqldf")
-
-
+dependencias = function(){
+  #install.packages("pingr")
+  library(pingr)
+  
+  #install.packages("iptools")
+  library(iptools)
+  
+  #install.packages("IPtoCountry")
+  library(IPtoCountry)
+  
+  #install.packages("sqldf")
+  library("sqldf")
+  
+  #install.packages("plyr")
+  library("plyr")
+  #https://www.curso-r.com/blog/2017-03-14-parallel/
+}
 
 #-- Funcoes criadas
-scanAllPorts = function (ip,portMin,portMax){
-  #TO DO - funcoes de paralelizacao
+scanPort = function(Porta){
+  Status = ping_port(IP_Global,port = Porta,count=1)
   
-  tabela = NULL
+  if(is.na(Status))
+    Status = "Closed"
+  else
+    Status="Open"
   
-  #Existem 65.536 portas - 0 a 65535 - No r e 1 a 655365 
-  for (numeroPorta in portMin:portMax){
-    
-    resp = ping_port(ip,port = numeroPorta,count=1)
-    if(is.na(resp))
-      resp = "Closed"
-    else
-      resp="Open"
-    
-    
-    linhaTabela = c(ip,numeroPorta, resp)
-    tabela = rbind(tabela, linhaTabela)
-  }
+  #Cria 3 colunas para cada linha - IP | Porta | Status
+  linhaTabela = c(IP_Global,Porta, Status)
   
+  #Adiciona em uma matriz
+  tabela <<- rbind(tabela, linhaTabela)
   
-  colnames(tabela) = c("Ip","Porta","Status")
-  #rownames(tabela) = c("")
+  colnames(tabela) <<- c("Ip","Porta","Status")
+}
+scanPortsInRanged = function (IP){
+  
+  IP_Global <<- IP
+  
+  #Existem 65.536 portas - 0 a 65535 - No R e 1 a 655365
+  ports = portMin:portMax
+  
+  #Faça paralelo aqui embaixo @Jonathan
+  system.time({
+    #Lista com o status de cada porta para cada ip em uma posição
+    plyr::llply(ports, scanPort,.progress = progress_text(char = "."))
+  })
+  
   return (tabela)
 }
-scanAllIps = function(IPs,portMin,portMax) {
-  
-  tabelaComIps = NULL
-  
-  for (Ip in IPs) {
-    tabelaComUmIp = scanAllPorts(Ip,portMin,portMax)
-    tabelaComIps = rbind(tabelaComIps,tabelaComUmIp)
+scanAllIPsAndAllPorts = function(IPs) {
+
+#   Tentativa de fazer Paralelo
+#   system.time({
+#     #Lista com o status de cada porta para cada ip em uma posição
+#     plyr::llply(IPs, scanPortsInRanged,.progress = progress_text(char = "."),.parallel = TRUE)
+#   })
+
+# Sequencial
+  for (IP in IPs) {
+    scanPortsInRanged(IP)
   }
-  return (tabelaComIps)
 }
 
-# Funcoes que obtem quantidade de dados reduzidos para testes
-obterTabelaIpsComStatusPortas = function(teste){
-
-  if(teste){
-    vetor = IPs[1:4]
-    portMin=79
-    portMax=81
+# Funções auxiliares
+valoresGlobais= function(teste){
+  #Vetor de IPs ou e completo ou e reduzido
+  if(teste==TRUE){
+    vetorDeIPs <<- IPs[1:4];
+  }else {
+    vetorDeIPs <<- IPs;
   }
-  else{
-    vetor = IPs
-    portMin=1
-    portMax=655365
-  }
-  #Tabela com o status de cada porta para cada ip
-  tabelaIpsPortas = scanAllIps(vetor,portMin,portMax)
-  return(tabelaIpsPortas)
+  
+  portMin <<- ifelse(teste==TRUE, 75, 1) 
+  
+  portMax <<- ifelse(teste==TRUE, 81, 1023) 
+  
+  tabela <<- NULL
+  
 }
-
-
 
 #-- Fluxo Principal
-
-#A variavel teste deve ser setada para false para se obter dados reais.
-#Ela setada como true obtem pequenas amostras para testes de todas as informacoes
-teste=TRUE
-
-#NumMaxIps ou e 200 ou e 400
-numMaxIps = ifelse(teste==TRUE, 200, 400)
+teste = TRUE
 
 # Ips que utilizaremos
-IPs = IP_generator(numMaxIps) #function of library IPtoCountry
+IPs = IP_generator(200) #function of library IPtoCountry
 
 #Identificacao do pais e regiao de cada IP 
 IpsPaisesRegiao = IP_location(IPs) #function of library IPtoCountry
 
+#Alteracao dos valores para teste ou producao
+valoresGlobais(teste)
+scanAllIPsAndAllPorts(vetorDeIPs)
+
 #Tabela com os status de cada porta por IP
-tabelaIpsPortas = as.data.frame(obterTabelaIpsComStatusPortas(teste))
+tabelaIpsPortas = as.data.frame(tabela)
 
 Funcionalidade1 = sqldf("select country as pais, count(*) as quantidadeIPs from IpsPaisesRegiao group by country") 
 Funcionalidade2 = sqldf("Select count(distinct(Ip)) as NumeroDeIPsComPortaAberta from tabelaIpsPortas where Status = 'Open'")
