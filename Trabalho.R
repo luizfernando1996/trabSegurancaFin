@@ -19,6 +19,8 @@ library(iptools)
 install.packages("IPtoCountry")
 library(IPtoCountry)
 
+install.packages("sqldf")
+library("sqldf")
 
 install.packages("dplyr")
 
@@ -30,7 +32,15 @@ IPs = IP_generator(200) #IPtoCountry.pdf
 
 #Funcionalidade 1 - quantidade de IPs escaneados por país
 IpsPaises = IP_country(IPs) #IPtoCountry.pdf
-Valore = with(IpsPaises,table(Municipio)) 
+
+pais = as.character(IpsPaises)
+
+QtdePaises <- data.frame(pais, stringsAsFactors=FALSE)
+
+Funcionalidade1 <- sqldf("select pais, count(*) as quantidade from QtdePaises group by pais") 
+
+teste <- sqldf("select sum(quantidade) from Funcionalidade1")
+
 
 #Link: https://cran.r-project.org/web/packages/IPtoCountry/IPtoCountry.pdf
 
