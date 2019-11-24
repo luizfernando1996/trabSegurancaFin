@@ -39,8 +39,6 @@ QtdePaises <- data.frame(pais, stringsAsFactors=FALSE)
 
 Funcionalidade1 <- sqldf("select pais, count(*) as quantidade from QtdePaises group by pais") 
 
-teste <- sqldf("select sum(quantidade) from Funcionalidade1")
-
 
 #Link: https://cran.r-project.org/web/packages/IPtoCountry/IPtoCountry.pdf
 
