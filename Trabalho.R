@@ -1,21 +1,20 @@
 #-- Dependencias de bibliotecas
-dependencias = function(){
-  #install.packages("pingr")
-  library(pingr)
-  
-  #install.packages("iptools")
-  library(iptools)
-  
-  #install.packages("IPtoCountry")
-  library(IPtoCountry)
-  
-  #install.packages("sqldf")
-  library("sqldf")
-  
-  #install.packages("plyr")
-  library("plyr")
-  #https://www.curso-r.com/blog/2017-03-14-parallel/
-}
+install.packages("pingr")
+library(pingr)
+
+install.packages("iptools")
+library(iptools)
+
+install.packages("IPtoCountry")
+library(IPtoCountry)
+
+install.packages("sqldf")
+library("sqldf")
+
+install.packages("plyr")
+library("plyr")
+#https://www.curso-r.com/blog/2017-03-14-parallel/
+
 
 #-- Funcoes criadas
 scanPort = function(Porta){
@@ -72,16 +71,16 @@ valoresGlobais= function(teste){
     vetorDeIPs <<- IPs;
   }
   
-  portMin <<- ifelse(teste==TRUE, 75, 1) 
+  portMin <<- ifelse(teste==TRUE, 75, 80) 
   
-  portMax <<- ifelse(teste==TRUE, 81, 1023) 
+  portMax <<- ifelse(teste==TRUE, 81, 80) 
   
   tabela <<- NULL
   
 }
 
 #-- Fluxo Principal
-teste = TRUE
+teste = FALSE
 
 # Ips que utilizaremos
 IPs = IP_generator(200) #function of library IPtoCountry
@@ -101,3 +100,15 @@ Funcionalidade2 = sqldf("Select count(distinct(Ip)) as NumeroDeIPsComPortaAberta
 Funcionalidade3 = sqldf("Select Porta, count(*) as NumeroDeIPs from tabelaIpsPortas where Status = 'Open' group by Porta")
 Funcionalidade4 = sqldf("Select * from tabelaIpsPortas")
 Funcionalidade5 = sqldf("select country as pais, region as regiao, count(*) as quantidadeIPs from IpsPaisesRegiao group by country, region") 
+
+#Escreve nos arquivos os dados
+write.table(IPs, file='IPs.csv', sep=';', dec=',', row.names=FALSE)
+write.table(IpsPaisesRegiao, file='IpsPaisesRegiao.csv', sep=';', dec=',', row.names=FALSE)
+write.table(tabelaIpsPortas, file='IpsPortas.csv', sep=';', dec=',', row.names=FALSE)
+
+#Escreve nos arquivos as respostas
+write.table(Funcionalidade1, file='Resposta1.csv', sep=';', dec=',', row.names=FALSE)
+write.table(Funcionalidade2, file='Resposta2.csv', sep=';', dec=',', row.names=FALSE)
+write.table(Funcionalidade3, file='Resposta3.csv', sep=';', dec=',', row.names=FALSE)
+write.table(Funcionalidade4, file='Resposta4.csv', sep=';', dec=',', row.names=FALSE)
+write.table(Funcionalidade5, file='Resposta5.csv', sep=';', dec=',', row.names=FALSE)
