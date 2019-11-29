@@ -18,6 +18,10 @@ library("plyr")
 
 #-- Funcoes criadas
 scanPort = function(Porta){
+  library(pingr)
+  
+ 
+  
   Status = ping_port(IP_Global,port = Porta,count=1)
   
   if(is.na(Status))
@@ -26,12 +30,16 @@ scanPort = function(Porta){
     Status="Open"
   
   #Cria 3 colunas para cada linha - IP | Porta | Status
-  linhaTabela = c(IP_Global,Porta, Status)
+  # linhaTabela = paste(IP_Global,"," ,Porta,",", Status)
   
   #Adiciona em uma matriz
-  tabela <<- rbind(tabela, linhaTabela)
+  #tabela <<- rbind(tabela, linhaTabela)
   
-  colnames(tabela) <<- c("Ip","Porta","Status")
+  #colnames(tabela) <<- c("Ip","Porta","Status")
+  
+  #write(linhaTabela, file="out.csv", append=T)
+  
+  return(c(IP_Global, Porta, Status))
 }
 scanPortsInRanged = function (IP){
   
@@ -40,33 +48,53 @@ scanPortsInRanged = function (IP){
   #Existem 65.536 portas - 0 a 65535 - No R e 1 a 655365
   ports = portMin:portMax
   
-  #Faça paralelo aqui embaixo @Jonathan
-  system.time({
-    #Lista com o status de cada porta para cada ip em uma posição
-    plyr::llply(ports, scanPort,.progress = progress_text(char = "."))
-  })
+  #Faï¿½a paralelo aqui embaixo @Jonathan
+ 
+   # system.time({
+   #   #Lista com o status de cada porta para cada ip em uma posiï¿½ï¿½o
+   #   plyr::llply(ports, scanPort,.progress = progress_text(char = "."))
+   # 
+   # })
+
   
+  # for (port in ports) {
+  #    
+  #    scanPort(port)
+  #    
+  # }
+  
+  registerDoParallel(8)  # use multicore, set to the number of our cores
+  print("Antes paralelo")
+  output <<- foreach (i=1:ports, .export = ls (envir = globalenv()), .combine = 'rbind') %dopar% {
+
+
+    scanPort(i)
+
+  }
+
   return (tabela)
 }
 scanAllIPsAndAllPorts = function(IPs) {
 
 #   Tentativa de fazer Paralelo
 #   system.time({
-#     #Lista com o status de cada porta para cada ip em uma posição
+#     #Lista com o status de cada porta para cada ip em uma posiï¿½ï¿½o
 #     plyr::llply(IPs, scanPortsInRanged,.progress = progress_text(char = "."),.parallel = TRUE)
 #   })
 
 # Sequencial
   for (IP in IPs) {
+    print("Varrendo IP")
+    
     scanPortsInRanged(IP)
   }
 }
 
-# Funções auxiliares
+# Funï¿½ï¿½es auxiliares
 valoresGlobais= function(teste){
   #Vetor de IPs ou e completo ou e reduzido
   if(teste==TRUE){
-    vetorDeIPs <<- IPs[1:4];
+    vetorDeIPs <<- IPs[1:200];
   }else {
     vetorDeIPs <<- IPs;
   }
@@ -75,7 +103,12 @@ valoresGlobais= function(teste){
   
   portMax <<- ifelse(teste==TRUE, 81, 80) 
   
-  tabela <<- NULL
+ 
+  
+  tabela <<- data.frame(IP=character(),
+                        Porta=character(),
+                        Status=character(),
+                        stringsAsFactors=FALSE)
   
 }
 
@@ -83,14 +116,19 @@ valoresGlobais= function(teste){
 teste = FALSE
 
 # Ips que utilizaremos
-IPs = IP_generator(200) #function of library IPtoCountry
+IPs = IP_generator(1) #function of library IPtoCountry
 
 #Identificacao do pais e regiao de cada IP 
 IpsPaisesRegiao = IP_location(IPs) #function of library IPtoCountry
 
 #Alteracao dos valores para teste ou producao
+
+
+
 valoresGlobais(teste)
 scanAllIPsAndAllPorts(vetorDeIPs)
+
+
 
 #Tabela com os status de cada porta por IP
 tabelaIpsPortas = as.data.frame(tabela)
